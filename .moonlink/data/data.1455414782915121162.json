@@ -1,0 +1,96 @@
+{
+  "data": {
+    "nodes": {
+      "9b51f13316e74710751b22c89f14c8a92d51256f113cfb5bee6cdd430d85c013": {
+        "sessionId": "wBsDYsdbwdIROJgR"
+      },
+      "46c8929ef0a31628808973e6dff576222b58996dc33a3cd52be838c391eb746b": {
+        "sessionId": "e68ivm18dtr9jlxb"
+      }
+    },
+    "players": {
+      "1337673481822797875": {
+        "guildId": "1337673481822797875",
+        "voiceChannelId": "1357265759234953317",
+        "textChannelId": "1445960604056682624",
+        "volume": 80,
+        "queue": [
+          {
+            "encoded": "QAAAuAMAG0phbmluYSAtIFRlcnJhbm92YSAoTHlyaWNzKQAPQ2FrZXMgJiBFY2xhaXJzAAAAAAADikAACzR0eXNfMmFQdkxNAAEAK2h0dHBzOi8vd3d3LnlvdXR1YmUuY29tL3dhdGNoP3Y9NHR5c18yYVB2TE0BADBodHRwczovL2kueXRpbWcuY29tL3ZpLzR0eXNfMmFQdkxNL21xZGVmYXVsdC5qcGcAAAd5b3V0dWJlAAAAAAAAAAA=",
+            "requester": {
+              "id": "896607695329693746",
+              "bot": false,
+              "system": false,
+              "flags": 256,
+              "username": "iamnotjamesbg",
+              "globalName": "JAnimeREACTS",
+              "discriminator": "0",
+              "avatar": "f2fc0ca1d7f419949b8031eb78c26702",
+              "banner": null,
+              "accentColor": null,
+              "avatarDecoration": null,
+              "avatarDecorationData": null,
+              "collectibles": {
+                "nameplate": {
+                  "skuId": "1427463138646954036",
+                  "asset": "nameplates/orb/magical_mist/",
+                  "label": "COLLECTIBLES_ORB_MAGIC_MISTS_NP_A11Y",
+                  "palette": "cobalt"
+                }
+              },
+              "primaryGuild": {
+                "identityGuildId": "305129477627969547",
+                "identityEnabled": true,
+                "tag": "meow",
+                "badge": "ec60c5e6d1f14d3bbff586e2e0b9e54e"
+              },
+              "createdTimestamp": 1633838332732,
+              "defaultAvatarURL": "https://cdn.discordapp.com/embed/avatars/4.png",
+              "hexAccentColor": null,
+              "tag": "iamnotjamesbg",
+              "avatarURL": "https://cdn.discordapp.com/avatars/896607695329693746/f2fc0ca1d7f419949b8031eb78c26702.webp",
+              "displayAvatarURL": "https://cdn.discordapp.com/avatars/896607695329693746/f2fc0ca1d7f419949b8031eb78c26702.webp",
+              "bannerURL": null,
+              "guildTagBadgeURL": "https://cdn.discordapp.com/guild-tag-badges/305129477627969547/ec60c5e6d1f14d3bbff586e2e0b9e54e.webp"
+            }
+          }
+        ],
+        "current": {
+          "encoded": "QAAAwQMALHB1cHNpZXMg4oCYbWlzZXJ5LuKAmSAoT2ZmaWNpYWwgTHlyaWMgVmlkZW8pAAdwdXBzaWVzAAAAAAACgKAAC016WU82X2xkM0xBAAEAK2h0dHBzOi8vd3d3LnlvdXR1YmUuY29tL3dhdGNoP3Y9TXpZTzZfbGQzTEEBADBodHRwczovL2kueXRpbWcuY29tL3ZpL016WU82X2xkM0xBL21xZGVmYXVsdC5qcGcAAAd5b3V0dWJlAAAAAAAAAAA=",
+          "requester": {
+            "id": "1142075424516603904",
+            "bot": false,
+            "system": false,
+            "flags": 256,
+            "username": "zachary_devs",
+            "globalName": "zach.",
+            "discriminator": "0",
+            "avatar": "7e78678b1f68c625c0604fefbd66fe03",
+            "banner": null,
+            "accentColor": null,
+            "avatarDecoration": null,
+            "avatarDecorationData": null,
+            "collectibles": null,
+            "primaryGuild": {
+              "identityGuildId": "398627612299362304",
+              "identityEnabled": true,
+              "tag": "GD",
+              "badge": "9c28f5002410f1d1679d0e6a99609ef4"
+            },
+            "createdTimestamp": 1692362399940,
+            "defaultAvatarURL": "https://cdn.discordapp.com/embed/avatars/0.png",
+            "hexAccentColor": null,
+            "tag": "zachary_devs",
+            "avatarURL": "https://cdn.discordapp.com/avatars/1142075424516603904/7e78678b1f68c625c0604fefbd66fe03.webp",
+            "displayAvatarURL": "https://cdn.discordapp.com/avatars/1142075424516603904/7e78678b1f68c625c0604fefbd66fe03.webp",
+            "bannerURL": null,
+            "guildTagBadgeURL": "https://cdn.discordapp.com/guild-tag-badges/398627612299362304/9c28f5002410f1d1679d0e6a99609ef4.webp"
+          },
+          "position": 102900
+        },
+        "playing": true,
+        "paused": false
+      }
+    }
+  }
+}

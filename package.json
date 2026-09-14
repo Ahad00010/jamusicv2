@@ -1,0 +1,19 @@
+{
+  "name": "discord-music-bot",
+  "version": "1.0.0",
+  "description": "Discord music bot using discord.js, official Lavalink, and Moonlink.js v5",
+  "main": "index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node index.js",
+    "deploy": "node deploy-commands.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.27.0",
+    "dotenv": "^16.4.5",
+    "moonlink.js": "^5.2.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
