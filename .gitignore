@@ -1,3 +1,8 @@
 node_modules/
 .env
-npm-debug.log
+*.log
+moonlink*.db
+moonlink*.db-journal
+jamusic.db
+jamusic.db-journal
+data/

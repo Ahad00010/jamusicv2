@@ -1,92 +1,115 @@
-# Discord Music Bot — discord.js + Lavalink + Moonlink.js v5
+# 🎵 JaMusic V2
 
-A slash-command Discord music bot built with:
-- **discord.js** v14 — Discord API wrapper
-- **Lavalink** v4 (official, Java-based) — audio server that actually streams the music
-- **Moonlink.js** v5.2 — the Lavalink client library that connects your bot to Lavalink
+A complete Discord music & community bot built with **discord.js v14**, **moonlink.js v5**, **NodeLink** and **Discord Components V2** — featuring music playback, moderation, an economy system, interactive games and more.
 
-## How the pieces fit together
+## ✨ Features
 
-Your bot doesn't stream audio itself. It sends voice-channel join requests through Discord's
-gateway, and **Lavalink** (a separate server process) handles decoding/streaming the audio.
-**Moonlink.js** is the glue: it manages the WebSocket connection to Lavalink, tracks player
-state, queues, and forwards Discord voice payloads back and forth.
+| Category | Commands |
+|---|---|
+| 🎵 Music (23) | play, search, pause, resume, skip, back, replay, stop, leave, join, nowplaying, queue, history, volume, loop, shuffle, seek, remove, move, clear, autoplay, filter, grab |
+| 🌐 General (18) | help, ping, botinfo, serverinfo, userinfo, avatar, banner, roleinfo, channelinfo, emojiinfo, invite, poll, embed, say, remind, afk, calculator, stats |
+| 🛡️ Moderation (21) | ban, unban, softban, kick, timeout, untimeout, warn, warnings, clearwarnings, delwarn, purge, lock, unlock, slowmode, vmute, vunmute, nickname, addrole, removerole, modlogs, dm |
+| 💰 Economy (20) | balance, daily, weekly, work, beg, crime, rob, deposit, withdraw, pay, gamble, coinflip, slots, shop, buy, use, sell, inventory, leaderboard, rank |
+| 🎮 Games (13) | tictactoe, connect4, rps, blackjack, hangman, guessnumber, higherlower, duel, truthdare, wouldyourather, dice, typingrace, memory |
+| ⚙️ Config (2) | setup, showconfig |
 
+**Every reply uses Discord's Components V2** (`ContainerBuilder`, `SectionBuilder`, `TextDisplayBuilder`, `SeparatorBuilder`, `MediaGalleryBuilder`, …) — including a **live-updating music player card** with progress bar, control buttons and queue/filter/volume select menus.
+
+## 📦 Requirements
+
+- **Node.js 22+** (for both the bot and the bundled NodeLink audio server — **no Java needed**)
+- A Discord bot token ([create an application](https://discord.com/developers/applications))
+
+## 🚀 Setup
+
+### 1. Install dependencies
+
+```bash
+npm install
 ```
-Your bot (discord.js) <---> Moonlink.js (Manager) <---> Lavalink server <---> Voice channel
-```
 
-## 1. Get a Lavalink server running
+This also installs the dependencies of the bundled NodeLink server (`nodelink/`).
 
-You need a running Lavalink v4 instance. Easiest options:
-
-- **Run it yourself**: download the latest `Lavalink.jar` from the official repo
-  (https://github.com/lavalink-devs/Lavalink/releases) and run `java -jar Lavalink.jar`
-  next to an `application.yml` config file (see the Lavalink docs for a sample config —
-  set a `password`, port `2333`, etc).
-- **Use a free/public Lavalink node** for testing (search "public lavalink nodes list" —
-  availability changes often, so don't rely on these for production).
-- **NodeLink** is a Node.js-native Lavalink-compatible alternative Moonlink.js also supports,
-  if you'd rather not run Java.
-
-Note the `host`, `port`, `password`, and whether it uses SSL — you'll need these for `.env`.
-
-## 2. Create your Discord application
-
-1. Go to https://discord.com/developers/applications and create an application.
-2. Under **Bot**, create a bot user and copy the **token**.
-3. Under **OAuth2 > URL Generator**, check scopes `bot` and `applications.commands`, and
-   permissions `Connect`, `Speak`, `Send Messages`, `Embed Links`. Use the generated URL to
-   invite the bot to your server.
-4. Copy your application's **Client ID** from the General Information page.
-
-## 3. Configure environment variables
+### 2. Configure the bot
 
 ```bash
 cp .env.example .env
 ```
 
-Fill in `DISCORD_TOKEN`, `CLIENT_ID`, optionally `GUILD_ID` (for instant command updates
-while testing), and your Lavalink connection details.
+Fill in:
 
-## 4. Install and run
+| Variable | Description |
+|---|---|
+| `BOT_TOKEN` | Your bot token from the Developer Portal |
+| `CLIENT_ID` | Your application ID |
+| `GUILD_ID` | *(optional)* A server ID — makes command registration instant while developing |
+| `NODELINK_PASSWORD` | Audio server password (default `youshallnotpass`) |
+| `NODELINK_HOST` / `NODELINK_PORT` | *(optional)* Advanced overrides — on Render, `PORT` is handled automatically |
+
+Legacy `LAVALINK_*` variables are still respected if present.
+
+Invite the bot with the **bot** + **applications.commands** scopes and permissions: Connect, Speak, Send Messages, Manage Messages, Kick Members, Ban Members, Moderate Members, Manage Channels, Manage Roles.
+
+### 3. Register slash commands & run
 
 ```bash
-npm install
-npm run deploy   # registers the slash commands with Discord
-npm start        # starts the bot
+# Instant registration to your dev guild (uses GUILD_ID):
+npm run deploy:guild
+
+# …or global registration (may take up to 1 hour to propagate):
+npm run deploy
+
+npm start   # boots NodeLink + the bot together
 ```
 
-## Commands
+## ☁️ Deploying to Render
 
-| Command | Description |
-|---|---|
-| `/play <query>` | Search and queue a song or playlist (URL or search term) |
-| `/skip [to]` | Skip current track, or jump to a queue position |
-| `/pause` / `/resume` | Pause or resume playback |
-| `/stop` | Clear the queue and leave the voice channel |
-| `/queue` | Show upcoming tracks |
-| `/nowplaying` | Show the current track with a progress bar |
-| `/volume <0-1000>` | Adjust playback volume |
-| `/loop <off\|track\|queue>` | Set loop mode |
-| `/disconnect` | Leave the voice channel |
+One **Web Service** runs everything — the bundled NodeLink binds to `0.0.0.0:$PORT` and serves Render's health check itself:
 
-## Project structure
+1. Push this repo to GitHub, then on Render: **New → Web Service**, connect the repo, **Runtime: Node**.
+2. **Build command:** `npm install` — **Start command:** `npm start`.
+3. Environment variables:
+   - `NODE_VERSION` = `22` (or newer)
+   - `BOT_TOKEN`, `CLIENT_ID`
+   - `NODELINK_PASSWORD` — set a long random string (the port is publicly reachable)
+   - `GUILD_ID` *(optional)*
+4. Deploy — the launcher starts NodeLink, waits for its API, then starts the bot.
+
+**Render notes:**
+- Free instances sleep after ~15 minutes without *inbound* HTTP traffic (the bot's Discord connection doesn't count). Point an uptime pinger (UptimeRobot, cron-job.org) at your service URL, or use a paid instance.
+- Free instances have 512 MB RAM — NodeLink + bot fit, but a Starter instance is more comfortable.
+- NodeLink ships prebuilt (`dist/`), so no TypeScript compile step is needed.
+
+## 🛠️ Development
+
+```bash
+npm run check        # syntax-check every source file
+```
+
+### Project layout
 
 ```
-discord-music-bot/
-├── index.js              # Bot entry point: Discord client + Moonlink Manager setup
-├── deploy-commands.js     # Registers slash commands with Discord
-├── commands/              # One file per slash command
-├── package.json
-└── .env.example
+src/
+├── index.js            # entry point — client, music manager, loaders
+├── config.js           # env config + validation
+├── database/           # better-sqlite3: users, guilds, warns, reminders, afk
+├── handlers/           # command/event/component loaders + deploy/destroy scripts
+├── music/              # moonlink manager, live player card, filters, views
+├── utils/              # Components V2 helpers, perms, formatting, shop
+├── events/             # ready, interactions, XP, welcome/leave
+├── components/         # interaction handlers (music, games, config, help)
+└── commands/           # music/ general/ moderation/ economy/ games/ config/
+scripts/
+├── start.js            # one-command launcher: NodeLink + bot
+└── install-nodelink.js # postinstall hook for nodelink/ dependencies
+nodelink/               # bundled NodeLink audio server (Lavalink v4 API, pure Node.js)
 ```
 
-## Notes
+### Notes
 
-- `autoResume: true` in the Manager options lets Moonlink try to restore player state after
-  a brief Lavalink node reconnect.
-- The bot auto-leaves the voice channel after 60 seconds of being idle with an empty queue
-  (see the `queueEnd` handler in `index.js`) — tweak or remove that if you'd rather it stay.
-- If slash commands don't show up immediately, that's normal for **global** deploys (up to an
-  hour to propagate) — set `GUILD_ID` in `.env` for instant updates during development.
+- **Data** is stored in `data/jamusic.db` (SQLite, WAL mode). Delete it to reset everything.
+- **DJ role**: configure in `/setup` — when set, playback controls require it (members with Manage Server bypass).
+- **Moderation logging** goes to the channel configured in `/setup`.
+- **Economy cooldowns** (daily/weekly/work/beg/crime/rob) are persisted in the database and survive restarts.
+- **Filters** use Lavalink v4 filter objects applied through moonlink's `player.filters` API (NodeLink implements them).
+- **NodeLink** is vendored under `nodelink/` ([PerformanC/NodeLink](https://github.com/PerformanC/NodeLink), GPL-3.0 — see `nodelink/LICENSE`). It speaks the Lavalink v4 REST/WebSocket API, so moonlink.js connects unchanged. A custom `nodelink/config.js` without the generated marker is left untouched by the launcher.

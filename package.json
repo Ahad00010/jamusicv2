@@ -1,19 +1,35 @@
 {
-  "name": "discord-music-bot",
-  "version": "1.0.0",
-  "description": "Discord music bot using discord.js, official Lavalink, and Moonlink.js v5",
-  "main": "index.js",
-  "type": "commonjs",
+  "name": "jamusic-v2",
+  "version": "2.0.0",
+  "description": "JaMusic V2 — an advanced Discord music & community bot built with discord.js v14, moonlink.js v5, NodeLink and Components V2.",
+  "main": "src/index.js",
   "scripts": {
-    "start": "node index.js",
-    "deploy": "node deploy-commands.js"
-  },
-  "dependencies": {
-    "discord.js": "^14.27.0",
-    "dotenv": "^16.4.5",
-    "moonlink.js": "^5.2.0"
+    "start": "node scripts/start.js",
+    "start:bot": "node src/index.js",
+    "deploy": "node src/handlers/deploy.js",
+    "deploy:guild": "node src/handlers/deploy.js --guild",
+    "destroy": "node src/handlers/destroy.js",
+    "destroy:guild": "node src/handlers/destroy.js --guild",
+    "postinstall": "node scripts/install-nodelink.js",
+    "check": "node scripts/syntax-check.js"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=22.0.0"
+  },
+  "keywords": [
+    "discord",
+    "discord-js",
+    "music-bot",
+    "lavalink",
+    "nodelink",
+    "moonlink",
+    "components-v2"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "better-sqlite3": "^12.2.0",
+    "discord.js": "^14.25.1",
+    "dotenv": "^17.2.3",
+    "moonlink.js": "^5.2.0"
   }
 }
