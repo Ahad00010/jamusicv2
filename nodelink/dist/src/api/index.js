@@ -278,9 +278,10 @@ async function requestHandler(nodelink, req, res) {
         return;
     }
     // Public landing page for uptime monitors (UptimeRobot etc.):
-    // GET / -> 200 "Keepalive !". The /ping alias keeps older monitor URLs green.
-    // Every other route still requires the password.
-    if (req.method === 'GET' && (parsedUrl.pathname === '/' || parsedUrl.pathname === '/ping')) {
+    // GET or HEAD / -> 200 "Keepalive !" (HEAD receives headers only, per HTTP spec;
+    // Node strips the body automatically). The /ping alias keeps older monitor URLs
+    // green. Every other route still requires the password.
+    if ((req.method === 'GET' || req.method === 'HEAD') && (parsedUrl.pathname === '/' || parsedUrl.pathname === '/ping')) {
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
         res.end([
             '<!DOCTYPE html>',
