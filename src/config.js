@@ -49,12 +49,12 @@ const config = {
     defaultVolume: 80,
   },
 
-  // Keepalive pings: keep the NodeLink connection warm and optionally
-  // self-ping an external URL (e.g. a Render web service) to stay awake.
+  // Keepalive ping: hits the bundled NodeLink API every interval so the audio
+  // node connection stays warm and outages surface early. Keeping the host
+  // itself awake is an uptime monitor's job (it hits GET / for "Keepalive !").
   keepalive: {
     enabled: String(process.env.KEEPALIVE_ENABLED ?? "true").toLowerCase() !== "false",
     intervalMs: Number(process.env.KEEPALIVE_INTERVAL_MS) || 60000,
-    url: process.env.KEEPALIVE_URL || "",
   },
 
   colors: COLORS,

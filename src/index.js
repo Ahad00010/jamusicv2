@@ -39,21 +39,21 @@ registerAllComponents(registerComponent);
 console.log("🎛️ Registered component handlers.");
 
 // ---- Keepalive ----
-// Periodically pings configured endpoints so connections stay warm and audio
-// node outages are surfaced early. KEEPALIVE_URL (optional) self-pings an
-// external service (e.g. Render) to keep it awake.
+// Periodically pings the bundled NodeLink API so the audio-node connection stays
+// warm and outages surface early. Keeping the *host* awake is an uptime
+// monitor's job - it hits the public "Keepalive !" page served at "/".
 const keepaliveTimers = new Set();
 
 function startKeepalive() {
   const keepalive = config.keepalive ?? {};
   if (keepalive.enabled === false) return;
   const intervalMs = keepalive.intervalMs || 60000;
-  const targets = [];
-  if (keepalive.url) targets.push({ url: keepalive.url, auth: "" });
-  targets.push({
-    url: `${config.lavalink.secure ? "https" : "http"}://${config.lavalink.host}:${config.lavalink.port}/v4/version`,
-    auth: config.lavalink.password,
-  });
+  const targets = [
+    {
+      url: `${config.lavalink.secure ? "https" : "http"}://${config.lavalink.host}:${config.lavalink.port}/v4/version`,
+      auth: config.lavalink.password,
+    },
+  ];
   for (const { url, auth } of targets) {
     const timer = setInterval(async () => {
       try {
@@ -66,7 +66,7 @@ function startKeepalive() {
     keepaliveTimers.add(timer);
   }
   console.log(
-    `💗 Keepalive on — pinging ${targets.length} target(s) every ${Math.round(intervalMs / 1000)}s.`
+    `💗 Keepalive on — pinging the NodeLink API every ${Math.round(intervalMs / 1000)}s.`
   );
 }
 

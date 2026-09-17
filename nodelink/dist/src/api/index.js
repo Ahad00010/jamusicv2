@@ -277,11 +277,31 @@ async function requestHandler(nodelink, req, res) {
         sendErrorResponse(req, res, 429, 'Too Many Requests', 'You are sending too many requests. Please try again later.', parsedUrl.pathname, trace);
         return;
     }
-    // Unauthenticated health endpoint for uptime monitors (UptimeRobot etc.):
-    // GET /ping -> 200 "pong". Every other route still requires the password.
-    if (req.method === 'GET' && parsedUrl.pathname === '/ping') {
-        res.writeHead(200, { 'Content-Type': 'text/plain' });
-        res.end('pong');
+    // Public landing page for uptime monitors (UptimeRobot etc.):
+    // GET / -> 200 "Keepalive !". The /ping alias keeps older monitor URLs green.
+    // Every other route still requires the password.
+    if (req.method === 'GET' && (parsedUrl.pathname === '/' || parsedUrl.pathname === '/ping')) {
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end([
+            '<!DOCTYPE html>',
+            '<html lang="en">',
+            '<head>',
+            '<meta charset="utf-8">',
+            '<meta name="viewport" content="width=device-width, initial-scale=1">',
+            '<title>Keepalive !</title>',
+            '<style>',
+            'html,body{height:100%;margin:0}',
+            'body{display:flex;align-items:center;justify-content:center;',
+            'background:#0f1117;color:#f2f3f5;',
+            'font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}',
+            'h1{font-weight:600;letter-spacing:.02em}',
+            '</style>',
+            '</head>',
+            '<body>',
+            '<h1>Keepalive !</h1>',
+            '</body>',
+            '</html>',
+        ].join('\n'));
         return;
     }
     if (!isMetricsEndpoint && !isProfilerEndpoint) {
