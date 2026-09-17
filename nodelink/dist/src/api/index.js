@@ -277,6 +277,13 @@ async function requestHandler(nodelink, req, res) {
         sendErrorResponse(req, res, 429, 'Too Many Requests', 'You are sending too many requests. Please try again later.', parsedUrl.pathname, trace);
         return;
     }
+    // Unauthenticated health endpoint for uptime monitors (UptimeRobot etc.):
+    // GET /ping -> 200 "pong". Every other route still requires the password.
+    if (req.method === 'GET' && parsedUrl.pathname === '/ping') {
+        res.writeHead(200, { 'Content-Type': 'text/plain' });
+        res.end('pong');
+        return;
+    }
     if (!isMetricsEndpoint && !isProfilerEndpoint) {
         const authHeader = getHeaderValue(headerAccess.authorization);
         if (!authHeader ||
