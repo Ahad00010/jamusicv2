@@ -1,9 +1,8 @@
-const { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } = require("discord.js");
+const { SlashCommandBuilder } = require("discord.js");
 const config = require("../../config");
-const { replyV2, container, text, separator, V2_FLAG, errorContainer } = require("../../utils/v2");
+const { replyV2, container, text, separator, errorContainer } = require("../../utils/v2");
 const { truncate } = require("../../utils/format");
-
-const NUMBER_EMOJIS = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"];
+const { NUMBER_EMOJIS, voteRows, createPollVoteState } = require("../../components/polls");
 
 module.exports = {
   name: "poll",
@@ -30,69 +29,27 @@ module.exports = {
       return replyV2(interaction, errorContainer("Please provide between **2** and **10** options, separated by commas. 📊"));
     }
 
-    const counts = new Map(options.map((_, i) => [String(i), new Set()]));
+    const endsAt = Date.now() + minutes * 60000;
     const children = [
       text(`## 📊 ${truncate(question, 180)}`),
       text(options.map((o, i) => `${NUMBER_EMOJIS[i]} ${truncate(o, 80)}`).join("\n")),
       separator(),
-      text(`-# Poll by ${interaction.user} • Ends <t:${Math.floor((Date.now() + minutes * 60000) / 1000)}:R>`),
+      text(`-# Poll by ${interaction.user} • Ends <t:${Math.floor(endsAt / 1000)}:R>`),
+      separator(),
+      // Vote rows ship inside the container (like on the player card), so the
+      // poll message is complete in one reply — nothing to edit in afterwards.
+      ...voteRows(options),
     ];
 
-    await replyV2(interaction, container(config.colors.primary, children), { fetchReply: true });
-    const message = await interaction.fetchReply();
+    await replyV2(interaction, container(config.colors.primary, children));
+    const message = await interaction.fetchReply().catch(() => null);
 
-    const collector = message.createMessageComponentCollector({ time: minutes * 60000 });
-    collector.on("collect", (i) => {
-      // Vote buttons are attached below
-      const index = i.customId.split(":")[2];
-      for (const voters of counts.values()) voters.delete(i.user.id);
-      counts.get(index).add(i.user.id);
-      const total = [...counts.values()].reduce((a, s) => a + s.size, 0);
-      i.reply({
-        components: [
-          container(config.colors.success, [
-            text(`## 🗳️ Vote recorded`),
-            text(`You voted **${truncate(options[Number(index)], 60)}**.\n-# ${total} total vote${total === 1 ? "" : "s"} so far`),
-          ]),
-        ],
-        flags: V2_FLAG | MessageFlags.Ephemeral,
-      }).catch(() => {});
-    });
-    collector.on("end", async () => {
-      const total = [...counts.values()].reduce((a, s) => a + s.size, 0);
-      const results = options
-        .map((o, i) => {
-          const count = counts.get(String(i)).size;
-          const pct = total ? Math.round((count / total) * 100) : 0;
-          return `${NUMBER_EMOJIS[i]} ${truncate(o, 40)} — **${count}** (\`${pct}%\`)`;
-        })
-        .join("\n");
-      await message
-        .edit({
-          components: [
-            container(config.colors.primary, [
-              text(`## 📊 ${truncate(question, 160)}`),
-              separator(),
-              text(results || "*No votes*"),
-              separator(),
-              text(`-# Poll by ${interaction.user} • **Ended** • ${total} vote${total === 1 ? "" : "s"}`),
-            ]),
-          ],
-        })
-        .catch(() => {});
-    });
-
-    // Attach vote buttons to the poll message
-    const rows = [];
-    for (let r = 0; r < Math.ceil(options.length / 5); r++) {
-      const row = new ActionRowBuilder();
-      for (let i = r * 5; i < Math.min((r + 1) * 5, options.length); i++) {
-        row.addComponents(
-          new ButtonBuilder().setCustomId(`poll:${message.id}:${i}`).setLabel(`Option ${i + 1}`).setStyle(ButtonStyle.Secondary)
-        );
-      }
-      rows.push(row);
+    // Vote clicks are answered by the poll: component handler
+    // (src/components/polls.js). The old message-collector version could never
+    // see them: the router answers every component interaction first, so each
+    // vote bounced off with "that interaction has expired or is unknown".
+    if (message) {
+      createPollVoteState(client, message, { question, options, ownerId: interaction.user.id, endsAt });
     }
-    await message.edit({ components: [container(config.colors.primary, children.slice(0, -1)), ...rows] }).catch(() => {});
   },
 };
