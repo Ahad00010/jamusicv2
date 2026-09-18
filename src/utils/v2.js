@@ -131,115 +131,125 @@ function warningContainer(message, { title = "⚠️ Warning", rows, footer } = 
   return container(0xfee75c, children);
 }
 
-/** Navigation row for paginated V2 messages */
-function navRow(baseId, page, totalPages) {
+/**
+ * Pagination state, keyed by the short token page buttons carry in their custom
+ * id (`pgn:<token>:<page>`). Clicks are served by a real component handler
+ * (components/pagination.js) instead of a message collector, because:
+ *   1. handlers/components.js routes EVERY component interaction first and
+ *      replies "that interaction has expired or is unknown" for a custom id
+ *      nobody registered — that reply won the race against a collector's
+ *      update(), so page arrows never turned a page.
+ *   2. Collectors die with their timeout, which killed long-lived views.
+ * Entries here have no time limit: they are only dropped once
+ * PAGER_STATE_LIMIT of them pile up, or when the bot restarts (a restart empties
+ * the players too, so nothing paged survives meaningfully anyway).
+ */
+const PAGER_PREFIX = "pgn";
+const PAGER_STATE_LIMIT = 400;
+const pagerState = new Map(); // token -> { id, buildPage, ownerId, totalPages }
+let pagerSeq = 0;
+
+function pagerSlug(value) {
+  const slug = String(value || "view")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 24);
+  return slug || "view";
+}
+
+function pagerId(token, page) {
+  return `${PAGER_PREFIX}:${token}:${page}`;
+}
+
+/** Splits a `pgn:<token>:<page>` custom id; returns null when it is not one. */
+function parsePagerId(customId) {
+  const [prefix, token, page] = String(customId || "").split(":");
+  if (prefix !== PAGER_PREFIX || !token || !page) return null;
+  return { token, page: Math.max(1, Number(page) || 1) };
+}
+
+/** Pagination state for a token, or null after a restart / eviction. */
+function getPagerState(token) {
+  return pagerState.get(token) || null;
+}
+
+/** Navigation row for paginated V2 messages — every button knows its own page. */
+function navRow(token, page, totalPages) {
   return new ActionRowBuilder().addComponents(
     new ButtonBuilder()
-      .setCustomId(`pgn:${baseId}:first`)
+      .setCustomId(pagerId(token, 1))
       .setLabel("«")
       .setStyle(ButtonStyle.Secondary)
       .setDisabled(page <= 1),
     new ButtonBuilder()
-      .setCustomId(`pgn:${baseId}:prev`)
+      .setCustomId(pagerId(token, Math.max(1, page - 1)))
       .setLabel("‹")
       .setStyle(ButtonStyle.Secondary)
       .setDisabled(page <= 1),
     new ButtonBuilder()
-      .setCustomId(`pgn:${baseId}:page`)
+      .setCustomId(pagerId(token, page))
       .setLabel(`${page} / ${totalPages}`)
       .setStyle(ButtonStyle.Primary)
       .setDisabled(true),
     new ButtonBuilder()
-      .setCustomId(`pgn:${baseId}:next`)
+      .setCustomId(pagerId(token, Math.min(totalPages, page + 1)))
       .setLabel("›")
       .setStyle(ButtonStyle.Secondary)
       .setDisabled(page >= totalPages),
     new ButtonBuilder()
-      .setCustomId(`pgn:${baseId}:last`)
+      .setCustomId(pagerId(token, totalPages))
       .setLabel("»")
       .setStyle(ButtonStyle.Secondary)
       .setDisabled(page >= totalPages)
   );
 }
 
-/** Disables every button of an existing nav row (for expiry). */
-function disableNavRow(row) {
-  for (const button of row.components) button.setDisabled(true);
-  return row;
-}
+
 
 /**
- * Paginated V2 message with « ‹ page › » buttons.
- * buildPage(page) must return a ContainerBuilder WITHOUT the nav row — it is appended here.
- * Page state lives in this module (keyed by baseId) so buttons stay stateless.
+ * Paginated V2 message with page buttons that never expire.
+ * buildPage(page) may return a ContainerBuilder, or `{ built, totalPages }` when a
+ * view can refresh its own page count (a queue grows, a new song starts, …).
+ * The nav row is appended here, and every button carries its own page number, so
+ * clicks are rendered on demand by the pgn: handler (components/pagination.js).
  */
-const paginationState = new Map(); // baseId -> { page, totalPages, buildPage, ownerId, messageId }
+function unwrapPage(rendered) {
+  if (rendered && typeof rendered === "object" && rendered.built) {
+    return { built: rendered.built, totalPages: rendered.totalPages ?? null };
+  }
+  return { built: rendered, totalPages: null };
+}
 
 // `deferred`: the caller already deferred (so editReply is used instead of reply);
 // `startPage`: first page to render (e.g. the page holding the current lyric line).
 async function paginate(
   interaction,
-  { id, totalPages, buildPage, ephemeral = false, deferred = false, startPage = 1 }
+  { id = "view", totalPages, buildPage, ephemeral = false, deferred = false, startPage = 1 }
 ) {
-  totalPages = Math.max(1, totalPages);
-  const baseId = `${id}:${interaction.id}`;
+  const token = `${pagerSlug(id)}-${++pagerSeq}`;
   const state = {
-    page: Math.min(Math.max(1, startPage), totalPages),
-    totalPages,
+    id,
     buildPage,
     ownerId: interaction.user.id,
+    totalPages: Math.max(1, totalPages),
   };
-  paginationState.set(baseId, state);
+  pagerState.set(token, state);
+  while (pagerState.size > PAGER_STATE_LIMIT) pagerState.delete(pagerState.keys().next().value);
 
-  const sendPayload = (p) => ({
-    components: [withNav(buildPage(p), baseId, p, totalPages)],
+  const first = unwrapPage(await buildPage(Math.min(Math.max(1, startPage), state.totalPages)));
+  state.totalPages = Math.max(1, first.totalPages || state.totalPages);
+  const page = Math.min(Math.max(1, startPage), state.totalPages);
+
+  const payload = {
+    components: [withNav(first.built, token, page, state.totalPages)],
     flags: ephemeral ? V2_FLAG | MessageFlags.Ephemeral : V2_FLAG,
-  });
-
-  if (deferred) await interaction.editReply(sendPayload(state.page));
-  else await interaction.reply(sendPayload(state.page));
-  const reply = await interaction.fetchReply();
-  state.messageId = reply.id;
-
-  const collector = reply.createMessageComponentCollector({ time: 5 * 60 * 1000 });
-  collector.on("collect", async (i) => {
-    const prefix = `pgn:${baseId}:`;
-    if (!i.customId.startsWith(prefix)) return;
-    const action = i.customId.slice(prefix.length);
-    if (i.user.id !== state.ownerId) {
-      return i.reply({
-        components: [errorContainer("This pagination belongs to someone else — run the command yourself! 🙅")],
-        flags: V2_FLAG | MessageFlags.Ephemeral,
-      });
-    }
-    if (action === "first") state.page = 1;
-    else if (action === "prev") state.page = Math.max(1, state.page - 1);
-    else if (action === "next") state.page = Math.min(totalPages, state.page + 1);
-    else if (action === "last") state.page = totalPages;
-    else return;
-    await i.update(sendPayload(state.page));
-  });
-
-  collector.on("end", async (_collected, reason) => {
-    paginationState.delete(baseId);
-    if (reason !== "time") return;
-    try {
-      const msg = await interaction.channel.messages.fetch(reply.id).catch(() => null);
-      if (msg && msg.editable) {
-        await msg.edit({ components: [withNav(buildPage(state.page), baseId, state.page, totalPages, true)] });
-      }
-    } catch {
-      /* message may be gone */
-    }
-  });
-
-  return reply;
+  };
+  return deferred ? interaction.editReply(payload) : interaction.reply(payload);
 }
 
-function withNav(built, baseId, page, totalPages, disabled = false) {
-  const row = navRow(baseId, page, totalPages);
-  if (disabled) disableNavRow(row);
-  built.addActionRowComponents(row);
+function withNav(built, token, page, totalPages) {
+  built.addActionRowComponents(navRow(token, page, totalPages));
   return built;
 }
 
@@ -277,6 +287,9 @@ module.exports = {
   fieldsText,
   navRow,
   paginate,
+  withNav,
+  parsePagerId,
+  getPagerState,
   replyV2,
   editReplyV2,
 };

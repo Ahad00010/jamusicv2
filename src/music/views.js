@@ -1,6 +1,6 @@
 const { container, text, separator, paginate } = require("../utils/v2");
 const { formatDuration, truncate } = require("../utils/format");
-const { currentLineIndex } = require("./lyrics");
+const { currentLineIndex, fetchLyricsFor } = require("./lyrics");
 const config = require("../config");
 
 const PAGE_SIZE = 10;
@@ -80,10 +80,9 @@ function historyPage(player, page) {
 /** Sends a paginated queue/history view as an ephemeral reply. */
 async function sendQueueView(interaction, player, kind) {
   const id = kind === "history" ? `hist:${interaction.guildId}` : `queue:${interaction.guildId}`;
-  const buildPage =
-    kind === "history"
-      ? (page) => historyPage(player, page).built
-      : (page) => queuePage(player, page).built;
+  // Returning the { built, totalPages } wrapper lets every page refresh the page
+  // count, so the view stays truthful when the queue grows or shrinks.
+  const buildPage = kind === "history" ? (page) => historyPage(player, page) : (page) => queuePage(player, page);
   const totalPages = kind === "history" ? historyPage(player, 1).totalPages : buildQueuePages(player);
   return paginate(interaction, { id, totalPages, buildPage, ephemeral: true });
 }
@@ -145,10 +144,19 @@ function lyricsPage(player, lyrics, page) {
   return container(0x9b59b6, children);
 }
 
+/** Identity of the track a view was built for (identifier > uri > title). */
+function currentTrackKey(player) {
+  const track = player?.current;
+  if (!track) return null;
+  return track.identifier || track.uri || track.title || null;
+}
+
 /**
  * Sends the paginated lyrics view as an ephemeral reply.
- * The interaction must already be deferred (debounced network fetch), and the
- * view opens on the page holding the line that is playing right now.
+ * The interaction must already be deferred (network fetch), and the view opens on
+ * the page holding the line that is playing right now. Pages never expire, so the
+ * builder re-checks the song: if playback moved on while the view was open, the
+ * lyrics are re-fetched so the page does not show the previous track.
  */
 async function sendLyricsView(interaction, player, lyrics) {
   const pageSize = config.music.lyricsPageLines;
@@ -156,11 +164,20 @@ async function sendLyricsView(interaction, player, lyrics) {
   const position = player?.current?.position ?? 0;
   const current = lyrics.synced ? currentLineIndex(lyrics.lines, position) : -1;
   const startPage = current >= 0 ? Math.floor(current / pageSize) + 1 : 1;
+  const trackKey = currentTrackKey(player);
 
   return paginate(interaction, {
     id: `lyrics:${interaction.guildId}`,
     totalPages,
-    buildPage: (page) => lyricsPage(player, lyrics, page),
+    buildPage: async (page) => {
+      let active = lyrics;
+      if (currentTrackKey(player) !== trackKey) {
+        const fresh = await fetchLyricsFor(player);
+        if (fresh.status === "ok") active = fresh;
+      }
+      const pages = Math.max(1, Math.ceil(active.lines.length / pageSize));
+      return { built: lyricsPage(player, active, Math.min(page, pages)), totalPages: pages };
+    },
     ephemeral: true,
     deferred: true,
     startPage,
