@@ -296,10 +296,12 @@ async function requestHandler(nodelink, req, res) {
             'background:#0f1117;color:#f2f3f5;',
             'font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}',
             'h1{font-weight:600;letter-spacing:.02em}',
+            'p{opacity:.5;font-size:.85em}',
             '</style>',
             '</head>',
             '<body>',
             '<h1>Keepalive !</h1>',
+            `<p>build ${String(process.env.RENDER_GIT_COMMIT || 'local').slice(0, 7)}</p>`,
             '</body>',
             '</html>',
         ].join('\n'));

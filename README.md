@@ -75,7 +75,9 @@ One **Web Service** runs everything — the bundled NodeLink binds to `0.0.0.0:$
    - `GUILD_ID` *(optional)*
 4. Deploy — the launcher starts NodeLink, waits for its API, then starts the bot.
    The service root (`/`) serves a plain "Keepalive !" page (no auth), so it doubles
-   as your health-check / uptime-monitor URL.
+   as your health-check / uptime-monitor URL. The page also shows the deployed
+   build SHA (from `RENDER_GIT_COMMIT`), so `curl -s <service-url> | grep build`
+   tells you which commit is live.
 
 **Render notes:**
 - Free instances sleep after ~15 minutes without *inbound* HTTP traffic (the bot's Discord connection doesn't count). Point an uptime monitor (UptimeRobot, cron-job.org) at the service root `/` — it answers `200 Keepalive !` — or use a paid instance.
