@@ -13,7 +13,7 @@ A complete Discord music & community bot built with **discord.js v14**, **moonli
 | 🎮 Games (13) | tictactoe, connect4, rps, blackjack, hangman, guessnumber, higherlower, duel, truthdare, wouldyourather, dice, typingrace, memory |
 | ⚙️ Config (2) | setup, showconfig |
 
-**Every reply uses Discord's Components V2** (`ContainerBuilder`, `SectionBuilder`, `TextDisplayBuilder`, `SeparatorBuilder`, `MediaGalleryBuilder`, …) — including a **live-updating music player card** with progress bar, control buttons and queue/filter/volume select menus.
+**Every reply uses Discord's Components V2** (`ContainerBuilder`, `SectionBuilder`, `TextDisplayBuilder`, `SeparatorBuilder`, `MediaGalleryBuilder`, …) — including a **live-updating music player card** with progress bar, control buttons, queue/filter/volume select menus and **paginated lyrics from [LRCLIB](https://lrclib.net)**.
 
 ## 📦 Requirements
 
@@ -114,4 +114,5 @@ nodelink/               # bundled NodeLink audio server (Lavalink v4 API, pure N
 - **Moderation logging** goes to the channel configured in `/setup`.
 - **Economy cooldowns** (daily/weekly/work/beg/crime/rob) are persisted in the database and survive restarts.
 - **Filters** use Lavalink v4 filter objects applied through moonlink's `player.filters` API (NodeLink implements them).
+- **Lyrics** come straight from [LRCLIB](https://lrclib.net) (no API key) via the 🎤 **Lyrics** button on the player card and `/nowplaying`: exact `/api/get` lookup first (with and without duration), then a scored `/api/search` fallback, synced LRC timings highlighted on the current line, and 15 lines per page with the usual pagination buttons. Results are cached (positive 30 min, misses 5 min) and the fetch is bounded by `music.lyricsTimeoutMs`.
 - **NodeLink** is vendored under `nodelink/` ([PerformanC/NodeLink](https://github.com/PerformanC/NodeLink), GPL-3.0 — see `nodelink/LICENSE`). It speaks the Lavalink v4 REST/WebSocket API, so moonlink.js connects unchanged. A custom `nodelink/config.js` without the generated marker is left untouched by the launcher.

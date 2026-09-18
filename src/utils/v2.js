@@ -175,10 +175,20 @@ function disableNavRow(row) {
  */
 const paginationState = new Map(); // baseId -> { page, totalPages, buildPage, ownerId, messageId }
 
-async function paginate(interaction, { id, totalPages, buildPage, ephemeral = false }) {
+// `deferred`: the caller already deferred (so editReply is used instead of reply);
+// `startPage`: first page to render (e.g. the page holding the current lyric line).
+async function paginate(
+  interaction,
+  { id, totalPages, buildPage, ephemeral = false, deferred = false, startPage = 1 }
+) {
   totalPages = Math.max(1, totalPages);
   const baseId = `${id}:${interaction.id}`;
-  const state = { page: 1, totalPages, buildPage, ownerId: interaction.user.id };
+  const state = {
+    page: Math.min(Math.max(1, startPage), totalPages),
+    totalPages,
+    buildPage,
+    ownerId: interaction.user.id,
+  };
   paginationState.set(baseId, state);
 
   const sendPayload = (p) => ({
@@ -186,7 +196,8 @@ async function paginate(interaction, { id, totalPages, buildPage, ephemeral = fa
     flags: ephemeral ? V2_FLAG | MessageFlags.Ephemeral : V2_FLAG,
   });
 
-  await interaction.reply(sendPayload(1));
+  if (deferred) await interaction.editReply(sendPayload(state.page));
+  else await interaction.reply(sendPayload(state.page));
   const reply = await interaction.fetchReply();
   state.messageId = reply.id;
 

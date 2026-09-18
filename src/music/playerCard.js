@@ -27,11 +27,12 @@ function controlRows() {
     new ActionRowBuilder().addComponents(
       button("music:showqueue", "Queue", "📜", ButtonStyle.Secondary),
       button("music:history", "History", "🕘", ButtonStyle.Secondary),
+      button("music:lyrics", "Lyrics", "🎤", ButtonStyle.Secondary),
       button("music:volume", "Volume", "🔊", ButtonStyle.Secondary),
-      button("music:filters", "Filters", "🎛️", ButtonStyle.Secondary),
-      button("music:autoplay", "Autoplay", "🤖", ButtonStyle.Secondary)
+      button("music:filters", "Filters", "🎛️", ButtonStyle.Secondary)
     ),
     new ActionRowBuilder().addComponents(
+      button("music:autoplay", "Autoplay", "🤖", ButtonStyle.Secondary),
       button("music:stop", "Stop & Leave", "⏹", ButtonStyle.Danger)
     ),
   ];

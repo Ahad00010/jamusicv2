@@ -1,6 +1,6 @@
 const { SlashCommandBuilder } = require("discord.js");
 const { replyV2, text, separator, thumbnail, container } = require("../../utils/v2");
-const { SectionBuilder, TextDisplayBuilder } = require("discord.js");
+const { SectionBuilder, TextDisplayBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 const { gate } = require("../../music/utils");
 const { formatDuration, truncate, progressBar } = require("../../utils/format");
 const { getActiveFilters } = require("../../music/filters");
@@ -54,6 +54,13 @@ module.exports = {
         ]
           .filter(Boolean)
           .join("\n")
+      )
+    );
+
+    children.push(separator());
+    children.push(
+      new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId("music:lyrics").setLabel("View Lyrics").setEmoji("🎤").setStyle(ButtonStyle.Secondary)
       )
     );
 

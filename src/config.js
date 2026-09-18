@@ -47,6 +47,10 @@ const config = {
     idleDestroyMs: 120000,
     maxVolume: 200,
     defaultVolume: 80,
+    // LRCLIB lyrics (https://lrclib.net) powering the player card's 🎤 Lyrics button.
+    lyricsTimeoutMs: 8000,
+    lyricsCacheMs: 30 * 60 * 1000,
+    lyricsPageLines: 15,
   },
 
   // Keepalive ping: hits the bundled NodeLink API every interval so the audio

@@ -7,13 +7,15 @@ const {
   text,
   separator,
   container,
+  editReplyV2,
 } = require("../utils/v2");
 const { formatDuration, truncate } = require("../utils/format");
 const { isDJ } = require("../utils/perms");
 const { getActiveFilters, setFilters, FILTER_NAMES } = require("../music/filters");
 const { sendOrUpdateCard, cleanupGuildMusic } = require("../music/manager");
 const { ensurePlayer, popSearchResults } = require("../music/utils");
-const { sendQueueView } = require("../music/views");
+const { sendQueueView, sendLyricsView } = require("../music/views");
+const { fetchLyricsFor } = require("../music/lyrics");
 const config = require("../config");
 
 const LOOP_ORDER = ["off", "track", "queue"];
@@ -109,6 +111,50 @@ async function handleMusicComponent(interaction, client) {
     const player = state.manager.players.get(interaction.guildId);
     if (!player || player.destroyed) return deny(interaction, "There is no active player in this server. 🎵");
     return sendQueueView(interaction, player, action === "history" ? "history" : "queue");
+  }
+
+  // ----- lyrics view: fetched from LRCLIB, paginated, ephemeral -----
+  if (action === "lyrics") {
+    const player = state.manager.players.get(interaction.guildId);
+    if (!player || player.destroyed) return deny(interaction, "There is no active player in this server. 🎵");
+    const track = player.current;
+    if (!track) return deny(interaction, "Nothing is playing right now — start something with </play:0>! 🎶");
+
+    // The LRCLIB lookup is a network round-trip, so acknowledge it right away.
+    await interaction.deferReply({ flags: V2_FLAG | MessageFlags.Ephemeral });
+    const lyrics = await fetchLyricsFor(player);
+
+    if (lyrics.status === "ok") return sendLyricsView(interaction, player, lyrics);
+
+    if (lyrics.status === "instrumental") {
+      return editReplyV2(
+        interaction,
+        container(0x9b59b6, [
+          text(`## 🎤 Lyrics`),
+          text(`**${truncate(track.title, 90)}** is marked as instrumental on LRCLIB — nothing to sing along to. 🎼`),
+        ])
+      );
+    }
+
+    if (lyrics.status === "error") {
+      return editReplyV2(
+        interaction,
+        errorContainer(`Couldn't reach LRCLIB right now (${truncate(lyrics.message || "unknown error", 120)}). Try again in a moment. 🎤`)
+      );
+    }
+
+    return editReplyV2(
+      interaction,
+      container(0x9b59b6, [
+        text(`## 🎤 Lyrics`),
+        text(
+          `No lyrics found on LRCLIB for **${truncate(track.title, 90)}**${
+            track.author ? ` by **${truncate(track.author, 60)}**` : ""
+          }.`
+        ),
+        text(`-# Tip: video titles are noisy — searching with the plain "artist - song" name usually matches better.`),
+      ])
+    );
   }
 
   return controlAction(interaction, client, action);

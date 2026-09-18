@@ -1,5 +1,7 @@
 const { container, text, separator, paginate } = require("../utils/v2");
 const { formatDuration, truncate } = require("../utils/format");
+const { currentLineIndex } = require("./lyrics");
+const config = require("../config");
 
 const PAGE_SIZE = 10;
 
@@ -86,4 +88,92 @@ async function sendQueueView(interaction, player, kind) {
   return paginate(interaction, { id, totalPages, buildPage, ephemeral: true });
 }
 
-module.exports = { queuePage, historyPage, buildQueuePages, sendQueueView, trackLine, PAGE_SIZE };
+/**
+ * Renders one page of LRCLIB lyrics for the playing track.
+ * Synced lyrics show their timestamp and the line being sung right now is
+ * highlighted, so the view stays useful while the song keeps playing.
+ */
+function lyricsPage(player, lyrics, page) {
+  const pageSize = config.music.lyricsPageLines;
+  const lines = lyrics.lines;
+  const totalPages = Math.max(1, Math.ceil(lines.length / pageSize));
+  const safePage = Math.min(Math.max(1, page), totalPages);
+  const slice = lines.slice((safePage - 1) * pageSize, safePage * pageSize);
+  const position = player?.current?.position ?? 0;
+  const current = lyrics.synced ? currentLineIndex(lines, position) : -1;
+
+  const title = lyrics.name || player?.current?.title || "Unknown track";
+  const artist = lyrics.artist || player?.current?.author || "Unknown artist";
+  const meta = [
+    truncate(artist, 60),
+    lyrics.album ? truncate(lyrics.album, 40) : null,
+    lyrics.synced ? "Synced" : "Plain",
+    lyrics.provider,
+  ]
+    .filter(Boolean)
+    .join(" • ");
+
+  const children = [text(`## 🎤 Lyrics`), text(`**${truncate(title, 90)}**\n-# ${meta}`), separator()];
+
+  if (!slice.length) {
+    children.push(text(`These lyrics are only blank lines. 🎼`));
+  } else {
+    const first = (safePage - 1) * pageSize;
+    children.push(
+      text(
+        slice
+          .map((line, i) => {
+            const index = first + i;
+            const stamp = line.time === null ? "" : `\`[${formatDuration(line.time)}]\` `;
+            const body = truncate(line.text, 120);
+            return index === current ? `${stamp}**▶ ${body}**` : `${stamp}${body}`;
+          })
+          .join("\n")
+      )
+    );
+  }
+
+  children.push(separator());
+  children.push(
+    text(
+      `-# Lines ${slice.length ? (safePage - 1) * pageSize + 1 : 0}–${(safePage - 1) * pageSize + slice.length} of ${
+        lines.length
+      }${lyrics.synced ? ` • Now at \`${formatDuration(position)}\`` : ""}`
+    )
+  );
+
+  return container(0x9b59b6, children);
+}
+
+/**
+ * Sends the paginated lyrics view as an ephemeral reply.
+ * The interaction must already be deferred (debounced network fetch), and the
+ * view opens on the page holding the line that is playing right now.
+ */
+async function sendLyricsView(interaction, player, lyrics) {
+  const pageSize = config.music.lyricsPageLines;
+  const totalPages = Math.max(1, Math.ceil(lyrics.lines.length / pageSize));
+  const position = player?.current?.position ?? 0;
+  const current = lyrics.synced ? currentLineIndex(lyrics.lines, position) : -1;
+  const startPage = current >= 0 ? Math.floor(current / pageSize) + 1 : 1;
+
+  return paginate(interaction, {
+    id: `lyrics:${interaction.guildId}`,
+    totalPages,
+    buildPage: (page) => lyricsPage(player, lyrics, page),
+    ephemeral: true,
+    deferred: true,
+    startPage,
+  });
+}
+
+module.exports = {
+  queuePage,
+  historyPage,
+  buildQueuePages,
+  sendQueueView,
+  lyricsPage,
+  sendLyricsView,
+  trackLine,
+  PAGE_SIZE,
+};
