@@ -121,7 +121,9 @@ async function handleMusicComponent(interaction, client) {
     if (!track) return deny(interaction, "Nothing is playing right now — start something with </play:0>! 🎶");
 
     // The LRCLIB lookup is a network round-trip, so acknowledge it right away.
-    await interaction.deferReply({ flags: V2_FLAG | MessageFlags.Ephemeral });
+    // Discord only accepts MessageFlags.Ephemeral on a deferred callback — the
+    // Components V2 flag is set on the edit below (editReplyV2 / paginate do it).
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     const lyrics = await fetchLyricsFor(player);
 
     if (lyrics.status === "ok") return sendLyricsView(interaction, player, lyrics);

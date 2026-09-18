@@ -34,5 +34,37 @@ for (const file of files) {
   }
 }
 
+/**
+ * Interaction-response rules that `node --check` cannot catch. Discord rejects
+ * `MessageFlags.IsComponentsV2` on a deferred callback (only EPHEMERAL is
+ * allowed there) and the failure only shows up at click time as the generic
+ * "Something went wrong while handling that interaction" reply.
+ */
+const INTERACTION_RULES = [
+  {
+    pattern: /deferReply\s*\([^)]*V2_FLAG/,
+    message:
+      "deferReply() cannot carry IS_COMPONENTS_V2 — defer with MessageFlags.Ephemeral and set the V2 flag on the edit (editReplyV2 / paginate).",
+  },
+];
+
+let violations = 0;
+
+for (const file of files) {
+  const lines = fs.readFileSync(file, "utf8").split(/\r?\n/);
+  for (const rule of INTERACTION_RULES) {
+    lines.forEach((line, index) => {
+      if (!rule.pattern.test(line)) return;
+      violations++;
+      console.error(`❌ ${path.relative(ROOT, file)}:${index + 1} — ${rule.message}`);
+      console.error(`   ${line.trim()}`);
+    });
+  }
+}
+
+if (violations) {
+  console.error(`\n${violations} interaction rule violation${violations === 1 ? "" : "s"}.`);
+}
+
 console.log(`\n${files.length - failed}/${files.length} files passed.`);
-process.exit(failed ? 1 : 0);
+process.exit(failed || violations ? 1 : 0);
